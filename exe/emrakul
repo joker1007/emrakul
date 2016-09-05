@@ -1,3 +1,5 @@
 #!/usr/bin/env ruby
 
-require "emrakul"
+require "emrakul/cli"
+
+Emrakul::Cli.start

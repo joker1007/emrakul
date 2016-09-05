@@ -8,42 +8,53 @@ require 'sshkit'
 module Emrakul
   class << self
     def run_emr(
-      config,
+      configs,
       gemfile_path,
       ec2_key_path,
-      access_key_id: nil,
-      secret_access_key: nil,
-      region: nil,
+      aws_access_key_id: nil,
+      aws_secret_access_key: nil,
+      aws_region: nil,
       user: "hadoop",
       emr_config: {},
-      embulk_path: `which embulk`.chomp
+      embulk_path: `which embulk`.chomp,
+      additional_scripts: [],
+      additional_uploads: []
     )
       raise "Need embulk" if embulk_path.nil? || embulk_path.empty?
 
-      if config.is_a?(String)
-        config_path = config
-      elsif config.is_a?(Hash)
-        tf = Tempfile.new(["emrakul", ".yml"])
-        tf.write(YAML.dump(config))
-        tf.flush
-        config_path = tf.path
-      else
-        raise "config is not assigned"
+      configs = Array(configs)
+      tfs = []
+      config_paths = configs.each_with_object([]) do |config, arr|
+        if config.is_a?(String)
+          arr << config
+        elsif config.is_a?(Hash)
+          tf = Tempfile.new(["emrakul", ".yml"])
+          tf.write(YAML.dump(config))
+          tf.flush
+          arr << tf.path
+          tfs << tf
+        else
+          raise "config is not assigned"
+        end
       end
 
       client = emr_client(
-        access_key_id: access_key_id,
-        secret_access_key: secret_access_key,
-        region: region
+        aws_access_key_id: aws_access_key_id,
+        aws_secret_access_key: aws_secret_access_key,
+        aws_region: aws_region
       )
 
       job_flow_id = run_cluster(client: client, emr_config: emr_config)
       master_instance = client.list_instances(cluster_id: job_flow_id, instance_group_types: ["MASTER"]).instances[0]
 
-      setup_embulk(user, master_instance, ec2_key_path, embulk_path, gemfile_path)
-      run_embulk(user, master_instance, ec2_key_path, config_path)
+      setup_embulk(user, master_instance, ec2_key_path, embulk_path, gemfile_path,
+                   additional_scripts: additional_scripts, additional_uploads: additional_uploads)
+
+      config_paths.each do |config_path|
+        run_embulk(user, master_instance, ec2_key_path, config_path)
+      end
     ensure
-      tf.close! if tf
+      tfs.each(&:close!) if tfs
       client.terminate_job_flows(job_flow_ids: [job_flow_id]) if job_flow_id
     end
 
@@ -57,6 +68,7 @@ module Emrakul
       emr_config[:instances][:keep_job_flow_alive_when_no_steps] = true
 
       job_flow_id = client.run_job_flow(emr_config).job_flow_id
+      puts "Waiting for cluster running ..."
       client.wait_until(:cluster_running, cluster_id: job_flow_id)
       job_flow_id
     end
@@ -119,14 +131,14 @@ module Emrakul
     end
 
     def emr_client(
-      access_key_id: nil,
-      secret_access_key: nil,
-      region: nil
+      aws_access_key_id: nil,
+      aws_secret_access_key: nil,
+      aws_region: nil
     )
       client_options = {
-        access_key_id: access_key_id,
-        secret_access_key: secret_access_key,
-        region: region,
+        access_key_id: aws_access_key_id,
+        secret_access_key: aws_secret_access_key,
+        region: aws_region,
       }.reject { |_, v| v.nil? }
 
       if client_options.empty?
