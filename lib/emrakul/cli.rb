@@ -29,11 +29,6 @@ module Emrakul
       run_options[:additional_scripts] = run_options[:additional_scripts].split(",").map(&:strip)
       run_options[:additional_uploads] = run_options[:additional_uploads].split(",").map(&:strip)
 
-      p embulk_configs
-      p gemfile_path
-      p ec2_key_path
-      p emr_config
-      p run_options
       Emrakul.run_emr(embulk_configs, gemfile_path, ec2_key_path, emr_config: emr_config, **run_options)
     end
   end

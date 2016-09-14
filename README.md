@@ -46,11 +46,11 @@ Options:
 ### Ruby
 
 ```ruby
-Emrakul.run_emr("embulk_config.yml", "embulk_gemfile", "~/emr-ec2-key.pem", emr_config: emr_config.yml, additional_scripts: ["install_jars.sh"], additional_uploads: ["google_api_key.json"])
+Emrakul.run("embulk_config.yml", "embulk_gemfile", "~/emr-ec2-key.pem", emr_config: emr_config.yml, additional_scripts: ["install_jars.sh"], additional_uploads: ["google_api_key.json"])
 ```
 
 ```ruby
-    def run_emr(
+    def run(
       configs,
       gemfile_path,
       ec2_key_path,
