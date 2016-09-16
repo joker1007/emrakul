@@ -183,7 +183,17 @@ module Emrakul
     def on_instance(user, instance, ec2_key_path, &block)
       host = SSHKit::Host.new("#{user}@#{instance.public_ip_address}")
       host.key = ec2_key_path
-      SSHKit::Coordinator.new([host]).each(&block)
+      with_debug_log do
+        SSHKit::Coordinator.new([host]).each(&block)
+      end
+    end
+
+    def with_debug_log
+      current_output_verbosity = SSHKit.config.output_verbosity
+      SSHKit.config.output_verbosity = :debug
+      yield
+    ensure
+      SSHKit.config.output_verbosity = current_output_verbosity
     end
 
     def emr_client(
