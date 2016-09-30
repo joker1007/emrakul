@@ -161,10 +161,11 @@ module Emrakul
         home_dir = "/home/#{user}"
         workspace_dir = "#{home_dir}/embulk_workspace"
 
-        upload! config_path, "#{workspace_dir}/config.yml"
+        timestamp = Time.now.strftime("%Y%m%d%H%M%S%6N")
+        upload! config_path, "#{workspace_dir}/config_#{timestamp}.yml"
 
         within workspace_dir do
-          execute :embulk, "run", "config.yml"
+          execute :embulk, "run", "config_#{timestamp}.yml"
         end
       end
     end
