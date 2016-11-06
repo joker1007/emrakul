@@ -133,6 +133,10 @@ module Emrakul
         execute :mkdir, "-p", workspace_dir
 
         upload! gemfile_path, "#{workspace_dir}/Gemfile"
+        gemfile_lock_path = gemfile_path + ".lock"
+        if File.exist?(gemfile_lock_path)
+          upload! gemfile_lock_path, "#{workspace_dir}/Gemfile.lock"
+        end
 
         within workspace_dir do
           execute :embulk, "bundle", "install"
